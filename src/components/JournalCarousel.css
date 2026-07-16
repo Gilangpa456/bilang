@@ -33,34 +33,6 @@
   transform: scale(1.1);
 }
 
-/* --- BACKGROUND PENUH --- */
-.rapunzel-fullscreen-bg, .spiderman-fullscreen-bg, .love-fullscreen-bg {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  z-index: 1;
-  pointer-events: none;
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  animation: fadeIn 1s ease forwards;
-}
-.love-fullscreen-bg { background-size: 100% 100%; }
-.rapunzel-fullscreen-bg { overflow: hidden; }
-.rapunzel-bg-element { position: absolute; mix-blend-mode: multiply; }
-.rapunzel-sun { top: 50%; left: 50%; transform: translate(-50%, -50%); width: 70vmin; opacity: 0.1; }
-.rapunzel-tower { bottom: -5vh; left: -2vw; height: 85vh; width: auto; opacity: 0.9; }
-.rapunzel-lanterns { top: 10vh; right: 15vw; width: 250px; mix-blend-mode: normal; filter: drop-shadow(0 0 20px rgba(255, 215, 0, 0.6)); }
-.rapunzel-pascal { bottom: 8vh; right: 12vw; width: 180px; }
-.rapunzel-butterfly { top: 25vh; left: 15vw; width: 100px; mix-blend-mode: normal; }
-
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
 .carousel-title {
   font-size: 2rem;
   font-weight: 700;
@@ -82,15 +54,15 @@
   align-items: center;
   justify-content: center;
   z-index: 10; 
-  /* KUNCI 3D UTAMA */
-  perspective: 2200px;
-  perspective-origin: 50% 20%;
+  /* KUNCI 3D UTAMA - lebih flat, ala iPad dipegang dari atas */
+  perspective: 2800px;
+  perspective-origin: 50% 10%;
   margin: 0 auto;
 }
 
 .book {
   position: relative;
-  width: 800px; /* Ukuran total buku terbuka (16:9) */
+  width: 800px;
   height: 600px;
   border-radius: 12px;
   box-shadow: 0 30px 60px rgba(0, 0, 0, 0.4);
@@ -112,22 +84,19 @@
   transform: rotateY(8deg);
 }
 
-/* LEMBARAN HALAMAN (Yang akan berputar) */
+/* LEMBARAN HALAMAN STATIS (Yang tidak sedang di-drag) */
 .book-page {
   position: absolute;
   right: 0; 
   top: 0;
   width: 50%; 
   height: 100%;
-  /* Titik putar ada di kiri (di lipatan tengah buku) */
   transform-origin: left center;
   transition: transform 1.2s cubic-bezier(0.645, 0.045, 0.355, 1);
   transform-style: preserve-3d;
-  /* Halaman kanan tidak rata 0deg, sedikit miring ke depan */
   transform: rotateY(-8deg);
 }
 
-/* Jika halaman dibalik, dia memutar ke KIRI tapi tidak sampai rata -180deg */
 .book-page.flipped {
   transform: rotateY(-172deg);
 }
@@ -136,8 +105,9 @@
 .page-front, .page-back {
   position: absolute;
   width: 100%; 
-  height: 100%;
-  backface-visibility: hidden; /* Sembunyikan sisi belakang saat memutar */
+  height: calc(100% + 2px);
+  top: -1px;
+  backface-visibility: hidden;
   overflow: hidden;
   background-color: #f7f3ec;
 }
@@ -146,17 +116,14 @@
   border-radius: 0 12px 12px 0;
 }
 
-/* Sisi belakang dibalik agar teks/gambar tidak terbalik saat halaman diputar */
 .page-back {
   transform: rotateY(180deg);
   border-radius: 12px 0 0 12px;
 }
 
 /* =========================================
-   OTOMATIS MEMOTONG GAMBAR 16:9 JADI DUA
+   OTOMATIS MEMOTONG GAMBAR JADI DUA
 ========================================= */
-
-/* Setengah Kiri (Ditempel di halaman kiri) */
 .img-left {
   position: absolute;
   width: 800px;
@@ -177,7 +144,7 @@
   object-position: center;
 }
 
-/* EFEK BAYANGAN LIPATAN BUKU (SPINE) BIAR REALISTIS */
+/* EFEK BAYANGAN LIPATAN BUKU (SPINE) */
 .spine-shadow {
   position: absolute;
   top: 0; 
@@ -187,13 +154,11 @@
   z-index: 10;
 }
 
-/* Bayangan di sisi kiri lipatan */
 .spine-shadow-left {
   right: 0;
   background: linear-gradient(to left, rgba(0,0,0,0.3), transparent);
 }
 
-/* Bayangan di sisi kanan lipatan */
 .spine-shadow-right {
   left: 0;
   background: linear-gradient(to right, rgba(0,0,0,0.3), transparent);
@@ -212,15 +177,16 @@
   transition: all 0.3s ease;
 }
 .nav-btn:hover { transform: scale(1.1); }
+
 /* =========================================
-   PAGE STACK EFFECT (tumpukan halaman ngintip, lebih tebal + curve)
+   PAGE STACK EFFECT (tumpukan halaman ngintip)
 ========================================= */
 .book-wrapper {
   position: relative;
   width: 800px;
   height: 600px;
   transform-style: preserve-3d;
-  transform: rotateX(10deg) scale(0.78);
+  transform: rotateX(18deg) scale(0.78);
   margin: 0 auto;
 }
 
@@ -254,7 +220,6 @@
   border-radius: 4px 16px 16px 4px;
 }
 
-/* Overlay shading biar kesan kertas melengkung/curl */
 .stack-sliver::after {
   content: '';
   position: absolute;
@@ -265,11 +230,15 @@
 }
 
 .stack-sliver-left::after {
-  background: linear-gradient(to right, rgba(0,0,0,0.55), rgba(0,0,0,0.1) 75%, rgba(0,0,0,0) 100%);
+  background:
+    repeating-linear-gradient(to right, rgba(255,255,255,0.1) 0 1px, transparent 1px 4px),
+    linear-gradient(to right, rgba(0,0,0,0.55), rgba(0,0,0,0.1) 75%, rgba(0,0,0,0) 100%);
 }
 
 .stack-sliver-right::after {
-  background: linear-gradient(to left, rgba(0,0,0,0.55), rgba(0,0,0,0.1) 75%, rgba(0,0,0,0) 100%);
+  background:
+    repeating-linear-gradient(to left, rgba(255,255,255,0.1) 0 1px, transparent 1px 4px),
+    linear-gradient(to left, rgba(0,0,0,0.55), rgba(0,0,0,0.1) 75%, rgba(0,0,0,0) 100%);
 }
 
 .book::before {
@@ -294,4 +263,22 @@
   background: linear-gradient(to right, rgba(0,0,0,0.2), transparent);
   z-index: 5;
   pointer-events: none;
+}
+
+/* Matikan fitur "drag native" browser pada gambar,
+   biar drag gesture Framer Motion yang jalan, bukan drag gambar bawaan browser */
+.book-page img,
+.book-left-base img {
+  -webkit-user-drag: none;
+  user-select: none;
+  pointer-events: none;
+}
+
+/* Kasih cursor visual biar user tau area ini bisa di-drag */
+.book-page {
+  cursor: grab;
+}
+
+.book-page:active {
+  cursor: grabbing;
 }
