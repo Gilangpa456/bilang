@@ -2,16 +2,17 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   width: 100vw;
   height: 100vh;
   overflow: hidden;
   position: relative;
   font-family: 'Inter', sans-serif;
   transition: background-color 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 40px 0 60px 0;
+  background-color: #2b2e4a;
 }
 
-/* --- TOMBOL MUSIK --- */
 .music-toggle {
   position: absolute;
   top: 30px;
@@ -25,27 +26,17 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 2000; 
+  z-index: 2000;
   transition: all 0.3s ease;
   font-size: 1.2rem;
+  color: white;
 }
-.music-toggle:hover {
-  transform: scale(1.1);
-}
+.music-toggle:hover { transform: scale(1.1); }
 
-.carousel-title {
-  font-size: 2rem;
-  font-weight: 700;
-  margin-bottom: 2rem;
-  z-index: 1000;
-  letter-spacing: -0.5px;
-  font-family: 'Playfair Display', serif;
-  transition: color 0.8s ease;
-}
+.carousel-header { text-align: center; margin-bottom: 20px; user-select: none; }
+.carousel-title { font-size: 2.5rem; font-weight: 700; font-family: 'Playfair Display', serif; margin: 0; }
+.carousel-subtitle { font-size: 0.9rem; opacity: 0.7; margin-top: 4px; }
 
-/* =========================================
-   DESAIN BUKU 3D ASLI (REAL PAGE FLIP)
-========================================= */
 .carousel-stage {
   position: relative;
   width: 100%;
@@ -53,232 +44,116 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 10; 
-  /* KUNCI 3D UTAMA - lebih flat, ala iPad dipegang dari atas */
+  z-index: 10;
   perspective: 2800px;
-  perspective-origin: 50% 10%;
+  perspective-origin: 50% 50%;
   margin: 0 auto;
 }
 
-.book {
-  position: relative;
-  width: 800px;
-  height: 600px;
-  border-radius: 12px;
-  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.4);
-  background-color: #f7f3ec;
-  transform-style: preserve-3d;
-}
+.drag-overlay { cursor: grab; }
+.drag-overlay:active { cursor: grabbing; }
 
-/* ALAS KIRI (Selalu menampilkan setengah bagian kiri dari halaman pertama) */
-.book-left-base {
-  position: absolute;
-  left: 0; 
-  top: 0;
-  width: 50%; 
-  height: 100%;
-  border-radius: 12px 0 0 12px;
-  overflow: hidden;
-  background: #f7f3ec;
-  transform-origin: right center;
-  transform: rotateY(8deg);
-}
-
-/* LEMBARAN HALAMAN STATIS (Yang tidak sedang di-drag) */
-.book-page {
-  position: absolute;
-  right: 0; 
-  top: 0;
-  width: 50%; 
-  height: 100%;
-  transform-origin: left center;
-  transition: transform 1.2s cubic-bezier(0.645, 0.045, 0.355, 1);
-  transform-style: preserve-3d;
-  transform: rotateY(-8deg);
-}
-
-.book-page.flipped {
-  transform: rotateY(-172deg);
-}
-
-/* Sisi Depan dan Belakang Kertas */
-.page-front, .page-back {
-  position: absolute;
-  width: 100%; 
-  height: calc(100% + 2px);
-  top: -1px;
-  backface-visibility: hidden;
-  overflow: hidden;
-  background-color: #f7f3ec;
-}
-
-.page-front {
-  border-radius: 0 12px 12px 0;
-}
-
-.page-back {
-  transform: rotateY(180deg);
-  border-radius: 12px 0 0 12px;
-}
-
-/* =========================================
-   OTOMATIS MEMOTONG GAMBAR JADI DUA
-========================================= */
-.img-left {
-  position: absolute;
-  width: 800px;
-  height: 600px;
-  left: 0;
-  top: 0;
-  object-fit: cover;
-  object-position: center;
-}
-
-.img-right {
-  position: absolute;
-  width: 800px; 
-  height: 600px;
-  left: -400px;
-  top: 0;
-  object-fit: cover;
-  object-position: center;
-}
-
-/* EFEK BAYANGAN LIPATAN BUKU (SPINE) */
-.spine-shadow {
-  position: absolute;
-  top: 0; 
-  bottom: 0; 
-  width: 45px; 
-  pointer-events: none; 
-  z-index: 10;
-}
-
-.spine-shadow-left {
-  right: 0;
-  background: linear-gradient(to left, rgba(0,0,0,0.3), transparent);
-}
-
-.spine-shadow-right {
-  left: 0;
-  background: linear-gradient(to right, rgba(0,0,0,0.3), transparent);
-}
-
-/* --- NAVIGASI --- */
-.carousel-controls {
-  margin-top: 4rem; display: flex; flex-direction: column;
-  align-items: center; gap: 15px; z-index: 1000;
-}
-.nav-buttons { display: flex; gap: 20px; }
-.nav-btn {
-  width: 45px; height: 45px; border-radius: 50%;
-  border: 2px solid; background: transparent; font-size: 1.2rem;
-  cursor: pointer; display: flex; align-items: center; justify-content: center;
-  transition: all 0.3s ease;
-}
-.nav-btn:hover { transform: scale(1.1); }
-
-/* =========================================
-   PAGE STACK EFFECT (tumpukan halaman ngintip)
-========================================= */
 .book-wrapper {
   position: relative;
   width: 800px;
   height: 600px;
   transform-style: preserve-3d;
-  transform: rotateX(18deg) scale(0.78);
+  transform: rotateX(2deg) scale(0.8);
   margin: 0 auto;
+  pointer-events: none; 
 }
 
 .book {
+  position: relative;
+  width: 800px;
+  height: 600px;
+  transform-style: preserve-3d;
   z-index: 50;
 }
 
-.page-stack {
+.book-left-base {
   position: absolute;
-  top: 0;
   left: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-}
-
-.stack-sliver {
-  position: absolute;
   top: 0;
+  width: 50%;
   height: 100%;
-  overflow: hidden;
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
-  transition: all 0.4s ease;
+  border-radius: 16px 0 0 16px;
+  transform-origin: right center;
+  transform-style: preserve-3d;
+  overflow: hidden; 
+  box-shadow: 0 45px 30px -10px rgba(0, 0, 0, 0.4);
 }
 
-.stack-sliver-left {
-  border-radius: 16px 4px 4px 16px;
-}
-
-.stack-sliver-right {
-  border-radius: 4px 16px 16px 4px;
-}
-
-.stack-sliver::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-}
-
-.stack-sliver-left::after {
-  background:
-    repeating-linear-gradient(to right, rgba(255,255,255,0.1) 0 1px, transparent 1px 4px),
-    linear-gradient(to right, rgba(0,0,0,0.55), rgba(0,0,0,0.1) 75%, rgba(0,0,0,0) 100%);
-}
-
-.stack-sliver-right::after {
-  background:
-    repeating-linear-gradient(to left, rgba(255,255,255,0.1) 0 1px, transparent 1px 4px),
-    linear-gradient(to left, rgba(0,0,0,0.55), rgba(0,0,0,0.1) 75%, rgba(0,0,0,0) 100%);
-}
-
-.book::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -20px;
-  width: 20px;
-  height: 100%;
-  background: linear-gradient(to left, rgba(0,0,0,0.2), transparent);
-  z-index: 5;
-  pointer-events: none;
-}
-
-.book::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  right: -20px;
-  width: 20px;
-  height: 100%;
-  background: linear-gradient(to right, rgba(0,0,0,0.2), transparent);
-  z-index: 5;
-  pointer-events: none;
-}
-
-/* Matikan fitur "drag native" browser pada gambar,
-   biar drag gesture Framer Motion yang jalan, bukan drag gambar bawaan browser */
-.book-page img,
-.book-left-base img {
-  -webkit-user-drag: none;
-  user-select: none;
-  pointer-events: none;
-}
-
-/* Kasih cursor visual biar user tau area ini bisa di-drag */
 .book-page {
-  cursor: grab;
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 50%;
+  height: 100%;
+  transform-origin: left center;
+  transform-style: preserve-3d;
+  border-radius: 0 16px 16px 0;
+  box-shadow: 0 45px 30px -10px rgba(0, 0, 0, 0.4);
+  user-select: none;
 }
 
-.book-page:active {
-  cursor: grabbing;
+.page-front, .page-back {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  backface-visibility: hidden;
+  background-color: #f7f3ec;
+  border-radius: inherit;
+  overflow: hidden; 
+}
+
+.page-front { transform: translateZ(1px); border-radius: 0 16px 16px 0; }
+.page-back { transform: rotateY(180deg) translateZ(1px); border-radius: 16px 0 0 16px; }
+
+.img-full {
+  position: absolute;
+  width: 800px;
+  height: 100%;
+  top: 0;
+  object-fit: cover; 
+  pointer-events: none;
+  user-select: none;
+}
+
+.img-left { left: 0; }
+.img-right { left: -400px; } 
+
+.spine-shadow { position: absolute; top: 0; bottom: 0; width: 60px; pointer-events: none; z-index: 10; }
+.spine-shadow-left { right: 0; background: linear-gradient(to left, rgba(0,0,0,0.5), transparent); }
+.spine-shadow-right { left: 0; background: linear-gradient(to right, rgba(0,0,0,0.5), transparent); }
+
+.carousel-footer { margin-top: 30px; display: flex; gap: 20px; justify-content: center; position: relative; z-index: 2000; }
+.nav-btn { width: 45px; height: 45px; border-radius: 50%; border: 2px solid white; background: transparent; font-size: 1.2rem; cursor: pointer; color: white; transition: all 0.3s; }
+.nav-btn:hover { background-color: #fca311; border-color: #fca311; color: #2b2e4a; }
+
+/* 🔥 EFEK KETEBALAN KERTAS (Tebal putih di pinggir layer) */
+.page-edge-right {
+  position: absolute;
+  inset: 0;
+  border-right: 6px solid #e6e3da;
+  border-top: 2px solid #e6e3da;
+  border-bottom: 2px solid #e6e3da;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow: inset -4px 0 10px rgba(0,0,0,0.1);
+  z-index: 5;
+}
+
+.page-edge-left {
+  position: absolute;
+  inset: 0;
+  border-left: 6px solid #e6e3da;
+  border-top: 2px solid #e6e3da;
+  border-bottom: 2px solid #e6e3da;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow: inset 4px 0 10px rgba(0,0,0,0.1);
+  z-index: 5;
 }

@@ -1,146 +1,161 @@
 import { useState, useRef, useEffect } from 'react';
-import { motion, AnimatePresence, useMotionValue, useTransform, animate } from 'framer-motion';
+import { motion, useMotionValue, useTransform, animate } from 'framer-motion';
 import './JournalCarousel.css';
 
-// Import foto
 import bilaImg from '../assets/bila.jpeg';
 import gilangImg from '../assets/gilang.jpeg';
 import usImg from '../assets/US.jpeg';
 import timeZoneImg from '../assets/Timezonedate.jpg';
-
 import bilaSong from '../assets/bilaSong.mp3';
 
-// Konstanta sudut halaman (mengikuti nilai lama biar buku tetap sedikit "melengkung")
-const UNFLIPPED_ANGLE = -8;
-const FLIPPED_ANGLE = -172;
-const DRAG_RANGE = 160;
+// Sudut tekukan V-shape
+const UNFLIPPED_ANGLE = -20; 
+const FLIPPED_ANGLE = -160; 
 
-const completeFlipConfig = { type: 'tween', ease: [0.22, 1, 0.36, 1], duration: 0.45 };
-const snapBackConfig = { type: 'spring', stiffness: 300, damping: 26 };
+function Page({ index, currentIndex, currentImg, nextImg }) {
+  const rotateY = useTransform(currentIndex, (c) => {
+    const dist = index - c;
+    if (dist >= 0) return UNFLIPPED_ANGLE + dist * 5;
+    if (dist <= -1) return FLIPPED_ANGLE - (Math.abs(dist + 1)) * 5;
+    const progress = -dist; 
+    return UNFLIPPED_ANGLE + progress * (FLIPPED_ANGLE - UNFLIPPED_ANGLE);
+  });
 
-// Halaman yang sedang bisa di-drag MAJU (index === activeIndex)
-function ForwardPage({ currentImg, nextImg, zIndex, onComplete }) {
-  const dragX = useMotionValue(0);
-  const rotateY = useTransform(dragX, [-DRAG_RANGE, 0], [FLIPPED_ANGLE, UNFLIPPED_ANGLE]);
+  // 🔥 SOLUSI LAYER & SPINE MULUS: Delayed X Offset
+  // Mengunci halaman aktif di x=0 agar gambar menyatu, lalu menggeser layer di bawahnya
+  const x = useTransform(currentIndex, (c) => {
+    const dist = index - c;
+    // Kunci spread yang sedang aktif agar tidak terbelah
+    if (dist >= 0 && dist <= 1) return 0;
+    if (dist < 0 && dist >= -1) return 0;
+    
+    // Tarik layer sisanya ke luar untuk membentuk efek tumpukan kertas (fanning)
+    if (dist > 1) return (dist - 1) * 80; 
+    if (dist < -1) return (dist + 1) * 80; 
+    return 0; 
+  });
 
-  const handleDrag = (e, info) => {
-    const clamped = Math.max(-DRAG_RANGE, Math.min(0, info.offset.x));
-    dragX.set(clamped);
-  };
+  const z = useTransform(currentIndex, (c) => {
+    const dist = index - c;
+    if (dist >= 0) return -dist * 20; 
+    if (dist <= -1) return -Math.abs(dist + 1) * 20;
+    
+    // Efek kertas melambung sedikit ke atas saat diflip agar tidak menembus kertas di bawahnya
+    const progress = -dist;
+    return Math.sin(progress * Math.PI) * 30; 
+  });
 
-  const handleDragEnd = (e, info) => {
-    const shouldFlip = info.offset.x < -DRAG_RANGE * 0.3 || info.velocity.x < -400;
-    if (shouldFlip) {
-      animate(dragX, -DRAG_RANGE, completeFlipConfig).then(() => {
-        onComplete();
-      });
-    } else {
-      animate(dragX, 0, snapBackConfig);
-    }
-  };
+  const scale = useTransform(currentIndex, (c) => {
+    const dist = index - c;
+    if (dist >= 0) return 1 - (dist * 0.04); 
+    if (dist <= -1) return 1 - (Math.abs(dist + 1) * 0.04); 
+    const progress = -dist;
+    return 1 + Math.sin(progress * Math.PI) * 0.03; 
+  });
+
+  const zIndex = useTransform(currentIndex, (c) => {
+    const dist = index - c;
+    return Math.round(100 - Math.abs(dist) * 10);
+  });
+
+  const shadowOpacityRight = useTransform(currentIndex, (c) => {
+    const dist = index - c;
+    return dist >= 0 ? Math.min(dist * 0.08, 0.4) : 0;
+  });
+
+  const shadowOpacityLeft = useTransform(currentIndex, (c) => {
+    const dist = index - c;
+    return dist <= -1 ? Math.min(Math.abs(dist + 1) * 0.08, 0.4) : 0;
+  });
 
   return (
-    <motion.div
-      className="book-page"
-      style={{ zIndex, rotateY, transformStyle: 'preserve-3d', touchAction: 'none' }}
-      drag="x"
-      dragConstraints={{ left: 0, right: 0 }}
-      dragElastic={0}
-      dragMomentum={false}
-      onDrag={handleDrag}
-      onDragEnd={handleDragEnd}
+    <motion.div 
+      className="book-page" 
+      style={{ rotateY, x, z, scale, zIndex, transformStyle: 'preserve-3d', transformOrigin: 'left center' }}
     >
-      <div className="page-front">
-        <img src={currentImg} className="img-right" alt="" />
+      <div className="page-front" style={{ transform: 'translateZ(1px)', backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' }}>
+        <img src={currentImg} className="img-full img-right" alt="" />
         <div className="spine-shadow spine-shadow-right"></div>
+        <div className="page-edge-right"></div>
+        <motion.div style={{ position: 'absolute', inset: 0, backgroundColor: 'black', opacity: shadowOpacityRight, pointerEvents: 'none', borderRadius: 'inherit', zIndex: 20 }} />
       </div>
-      <div className="page-back">
-        <img src={nextImg} className="img-left" alt="" />
+      
+      <div className="page-back" style={{ transform: 'rotateY(180deg) translateZ(1px)', backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' }}>
+        {nextImg ? (
+          <img src={nextImg} className="img-full img-left" alt="" />
+        ) : (
+          <div style={{ width: '100%', height: '100%', backgroundColor: '#e8e3d5' }}></div>
+        )}
         <div className="spine-shadow spine-shadow-left"></div>
+        <div className="page-edge-left"></div>
+        <motion.div style={{ position: 'absolute', inset: 0, backgroundColor: 'black', opacity: shadowOpacityLeft, pointerEvents: 'none', borderRadius: 'inherit', zIndex: 20 }} />
       </div>
     </motion.div>
   );
 }
 
-// Halaman yang sedang bisa di-drag MUNDUR (index === activeIndex - 1, sudah terlipat)
-function BackPage({ prevImg, currentImg, zIndex, onComplete }) {
-  const dragX = useMotionValue(0);
-  const rotateY = useTransform(dragX, [0, DRAG_RANGE], [FLIPPED_ANGLE, UNFLIPPED_ANGLE]);
-
-  const handleDrag = (e, info) => {
-    const clamped = Math.max(0, Math.min(DRAG_RANGE, info.offset.x));
-    dragX.set(clamped);
-  };
-
-  const handleDragEnd = (e, info) => {
-    const shouldUnflip = info.offset.x > DRAG_RANGE * 0.3 || info.velocity.x > 400;
-    if (shouldUnflip) {
-      animate(dragX, DRAG_RANGE, completeFlipConfig).then(() => {
-        onComplete();
-      });
-    } else {
-      animate(dragX, 0, snapBackConfig);
-    }
-  };
-
-  return (
-    <motion.div
-      className="book-page"
-      style={{ zIndex, rotateY, transformStyle: 'preserve-3d', touchAction: 'none' }}
-      drag="x"
-      dragConstraints={{ left: 0, right: 0 }}
-      dragElastic={0}
-      dragMomentum={false}
-      onDrag={handleDrag}
-      onDragEnd={handleDragEnd}
-    >
-      <div className="page-front">
-        <img src={prevImg} className="img-right" alt="" />
-        <div className="spine-shadow spine-shadow-right"></div>
-      </div>
-      <div className="page-back">
-        <img src={currentImg} className="img-left" alt="" />
-        <div className="spine-shadow spine-shadow-left"></div>
-      </div>
-    </motion.div>
-  );
-}
-
-function JournalCarousel() {
+export default function JournalCarousel() {
   const spreads = [timeZoneImg, bilaImg, usImg, gilangImg];
-
-  const colors = [
-    { bg: '#2b2b36', text: '#fca311' },
-    { bg: '#2b2b36', text: '#fca311' },
-    { bg: '#2b2b36', text: '#fca311' },
-    { bg: '#2b2b36', text: '#fca311' },
-  ];
-
+  const colors = [{ bg: '#2b2e4a', text: '#ffffff' }]; 
+  
   const [activeIndex, setActiveIndex] = useState(0);
+  const currentIndex = useMotionValue(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = useRef(null);
+  
+  const bookX = useTransform(currentIndex, (c) => -(c - (spreads.length / 2)) * 60);
+
+  // 🔥 Cover paling bawah ikut disesuaikan dengan logika Delay X agar layer kirinya rapi
+  const baseLeftX = useTransform(currentIndex, (c) => {
+    const dist = -1 - c;
+    if (dist >= -1) return 0;
+    return (dist + 1) * 80;
+  });
+  const baseLeftZ = useTransform(currentIndex, (c) => {
+    const dist = -1 - c;
+    return -Math.abs(dist + 1) * 20 - 1; 
+  });
+  const baseLeftScale = useTransform(currentIndex, (c) => 1 - c * 0.04);
+
+  const handleDrag = (e, info) => {
+    const progress = info.offset.x / -300;
+    let provIndex = activeIndex + progress;
+    if (provIndex < 0) provIndex = provIndex * 0.2;
+    if (provIndex > spreads.length - 1) provIndex = (spreads.length - 1) + (provIndex - (spreads.length - 1)) * 0.2;
+    currentIndex.set(provIndex);
+  };
+
+  const handleDragEnd = (e, info) => {
+    const offset = info.offset.x;
+    const velocity = info.velocity.x;
+    let nextIndex = activeIndex;
+
+    if (offset < -100 || velocity < -400) nextIndex = Math.min(activeIndex + 1, spreads.length - 1);
+    else if (offset > 100 || velocity > 400) nextIndex = Math.max(activeIndex - 1, 0);
+    
+    setActiveIndex(nextIndex);
+    animate(currentIndex, nextIndex, { type: 'spring', stiffness: 180, damping: 22 });
+  };
 
   const goNext = () => {
-    setActiveIndex((prev) => Math.min(prev + 1, spreads.length - 1));
+    const nextIdx = Math.min(activeIndex + 1, spreads.length - 1);
+    setActiveIndex(nextIdx);
+    animate(currentIndex, nextIdx, { type: 'spring', stiffness: 180, damping: 22 });
   };
 
   const goPrev = () => {
-    setActiveIndex((prev) => Math.max(prev - 1, 0));
+    const prevIdx = Math.max(activeIndex - 1, 0);
+    setActiveIndex(prevIdx);
+    animate(currentIndex, prevIdx, { type: 'spring', stiffness: 180, damping: 22 });
   };
 
   const isBilaActive = spreads[activeIndex] === bilaImg;
-
-  let currentSong = null;
-  if (isBilaActive) {
-    currentSong = bilaSong;
-  }
+  let currentSong = isBilaActive ? bilaSong : null;
 
   useEffect(() => {
     if (audioRef.current) {
       if (isPlaying && currentSong) {
-        setTimeout(() => {
-          audioRef.current.play().catch((e) => console.log('Menunggu interaksi:', e));
-        }, 50);
+        setTimeout(() => audioRef.current.play().catch((e) => console.log('Menunggu interaksi:', e)), 50);
       } else {
         audioRef.current.pause();
       }
@@ -148,202 +163,62 @@ function JournalCarousel() {
   }, [activeIndex, currentSong, isPlaying]);
 
   const toggleMusic = () => {
-    if (isPlaying) {
-      audioRef.current.pause();
-    } else {
-      if (currentSong) audioRef.current.play();
-    }
+    if (isPlaying) audioRef.current.pause();
+    else if (currentSong) audioRef.current.play();
     setIsPlaying(!isPlaying);
   };
 
-  let currentTheme = colors[activeIndex % colors.length];
+  let currentTheme = colors[0];
 
   return (
     <div className="carousel-container" style={{ backgroundColor: currentTheme.bg }}>
       <audio ref={audioRef} src={currentSong || ''} loop />
 
-      <button
-        className="music-toggle"
-        onClick={toggleMusic}
-        style={{ borderColor: currentTheme.text, color: currentTheme.text }}
-      >
-        {isPlaying ? '⏸' : '🎵'}
+      <button className="music-toggle" onClick={toggleMusic} style={{ borderColor: currentTheme.text, color: currentTheme.text }}>
+        {isPlaying ? '🔊' : '🔈'}
       </button>
 
+      <header className="carousel-header">
+        <h1 className="carousel-title" style={{ color: currentTheme.text }}>Journal</h1>
+        <p className="carousel-subtitle" style={{ color: currentTheme.text }}>{spreads.length * 2} Pages</p>
+      </header>
+
       <div className="carousel-stage">
+        <motion.div 
+          className="drag-overlay" 
+          style={{ position: 'absolute', inset: 0, zIndex: 1000, touchAction: 'none' }} 
+          drag="x" 
+          dragConstraints={{ left: 0, right: 0 }}
+          dragElastic={0}
+          dragMomentum={false}
+          onDrag={handleDrag} 
+          onDragEnd={handleDragEnd} 
+        />
+        
         <div className="book-wrapper">
-
-          {/* STACK KIRI */}
-          <div className="page-stack">
-            <AnimatePresence initial={false}>
-              {spreads.slice(0, Math.max(activeIndex - 1, 0)).slice(-14).reverse().map((img, i) => {
-                const distance = i + 1;
-                return (
-                  <motion.div
-                    key={img}
-                    className="stack-sliver stack-sliver-left"
-                    initial={{ opacity: 0, left: `-${(distance + 1) * 16}px` }}
-                    animate={{
-                      opacity: Math.max(1 - distance * 0.07, 0.25),
-                      left: `-${distance * 16}px`,
-                      rotateY: Math.min(distance * 1.2, 10),
-                    }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-                    style={{
-                      zIndex: 20 - distance,
-                      transformOrigin: 'right center',
-                      width: '75px',
-                      position: 'absolute',
-                      top: 0,
-                      height: '100%',
-                    }}
-                  >
-                    <img
-                      src={img}
-                      alt=""
-                      style={{
-                        width: '800px',
-                        height: '600px',
-                        position: 'absolute',
-                        left: '0px',
-                        top: 0,
-                        objectFit: 'cover',
-                        filter: 'brightness(0.85)',
-                      }}
-                    />
-                  </motion.div>
-                );
-              })}
-            </AnimatePresence>
-          </div>
-
-          <div className="book">
-            <div className="book-left-base">
-              <img src={spreads[0]} className="img-left" alt="Base Left" />
+          <motion.div className="book" style={{ x: bookX }}>
+            <motion.div 
+              className="book-left-base" 
+              style={{ x: baseLeftX, z: baseLeftZ, scale: baseLeftScale, transform: 'rotateY(20deg)' }}
+            >
+              <img src={spreads[0]} className="img-full img-left" alt="" />
               <div className="spine-shadow spine-shadow-left"></div>
-            </div>
-
-            {/* HALAMAN STATIS (yang sudah dibalik penuh / belum tersentuh sama sekali) */}
-            {spreads.map((img, index) => {
-              if (index === activeIndex || index === activeIndex - 1) return null;
-
-              const isFlipped = index < activeIndex;
-              const zIndex = isFlipped ? index + 1 : spreads.length - index;
-
-              return (
-                <div
-                  key={index}
-                  className={`book-page ${isFlipped ? 'flipped' : ''}`}
-                  style={{ zIndex }}
-                >
-                  <div className="page-front">
-                    <img src={img} className="img-right" alt="" />
-                    <div className="spine-shadow spine-shadow-right"></div>
-                  </div>
-                  <div className="page-back">
-                    {index + 1 < spreads.length ? (
-                      <img src={spreads[index + 1]} className="img-left" alt="" />
-                    ) : (
-                      <div style={{ width: '100%', height: '100%', backgroundColor: '#e8e3d5' }}></div>
-                    )}
-                    <div className="spine-shadow spine-shadow-left"></div>
-                  </div>
-                </div>
-              );
-            })}
-
-            {/* HALAMAN INTERAKTIF - drag mundur */}
-            {activeIndex > 0 && (
-              <BackPage
-                key={`back-${activeIndex - 1}`}
-                prevImg={spreads[activeIndex - 1]}
-                currentImg={spreads[activeIndex]}
-                zIndex={activeIndex}
-                onComplete={goPrev}
-              />
-            )}
-
-            {/* HALAMAN INTERAKTIF - drag maju */}
-            {activeIndex < spreads.length - 1 ? (
-              <ForwardPage
-                key={`forward-${activeIndex}`}
-                currentImg={spreads[activeIndex]}
-                nextImg={spreads[activeIndex + 1]}
-                zIndex={spreads.length - activeIndex}
-                onComplete={goNext}
-              />
-            ) : (
-              // Halaman terakhir - tidak bisa di-drag lagi, tampilkan statis
-              <div className="book-page" style={{ zIndex: spreads.length, transform: 'rotateY(-8deg)', transition: 'none' }}>
-                <div className="page-front">
-                  <img src={spreads[activeIndex]} className="img-right" alt="" />
-                  <div className="spine-shadow spine-shadow-right"></div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* STACK KANAN */}
-          <div className="page-stack">
-            <AnimatePresence initial={false}>
-              {spreads.slice(activeIndex + 1).slice(0, 14).map((img, i) => {
-                const distance = i + 1;
-                return (
-                  <motion.div
-                    key={img}
-                    className="stack-sliver stack-sliver-right"
-                    initial={{ opacity: 0, right: `-${(distance + 1) * 24}px` }}
-                    animate={{
-                      opacity: Math.max(1 - distance * 0.06, 0.3),
-                      right: `-${distance * 24}px`,
-                      rotateY: -Math.min(distance * 2, 16),
-                    }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-                    style={{
-                      zIndex: 20 - distance,
-                      transformOrigin: 'left center',
-                      width: '120px',
-                      position: 'absolute',
-                      top: 0,
-                      height: '100%',
-                    }}
-                  >
-                    <img
-                      src={img}
-                      alt=""
-                      style={{
-                        width: '800px',
-                        height: '600px',
-                        position: 'absolute',
-                        left: '-680px',
-                        top: 0,
-                        objectFit: 'cover',
-                        filter: 'brightness(0.88)',
-                      }}
-                    />
-                  </motion.div>
-                );
-              })}
-            </AnimatePresence>
-          </div>
-
+              <div className="page-edge-left"></div> 
+            </motion.div>
+            
+            {spreads.map((img, i) => (
+              <Page key={i} index={i} currentIndex={currentIndex} currentImg={img} nextImg={spreads[i + 1]} />
+            ))}
+          </motion.div>
         </div>
       </div>
 
-      <div className="carousel-controls">
-        <h2 className="carousel-title" style={{ marginBottom: '20px', color: currentTheme.text }}>
-          journal of us.
-        </h2>
-
-        <div className="nav-buttons">
-          <button className="nav-btn" onClick={goPrev} style={{ borderColor: currentTheme.text, color: currentTheme.text }}>{'<'}</button>
-          <button className="nav-btn" onClick={goNext} style={{ borderColor: currentTheme.text, color: currentTheme.text }}>{'>'}</button>
-        </div>
-      </div>
+      <footer className="carousel-footer">
+        <button className="nav-btn" onClick={goPrev}>🏠</button>
+        <button className="nav-btn">⬆️</button>
+        <button className="nav-btn">🗑️</button>
+        <button className="nav-btn" onClick={goNext}>➕</button>
+      </footer>
     </div>
   );
 }
-
-export default JournalCarousel;
