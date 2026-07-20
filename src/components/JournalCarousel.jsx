@@ -21,17 +21,19 @@ function Page({ index, currentIndex, currentImg, nextImg }) {
     return UNFLIPPED_ANGLE + progress * (FLIPPED_ANGLE - UNFLIPPED_ANGLE);
   });
 
-  // 🔥 SOLUSI LAYER & SPINE MULUS: Delayed X Offset
-  // Mengunci halaman aktif di x=0 agar gambar menyatu, lalu menggeser layer di bawahnya
+  // 🔥 SOLUSI FINAL SPINE KIRI: Mengunci "Floor Layer" (dist >= -2)
   const x = useTransform(currentIndex, (c) => {
     const dist = index - c;
-    // Kunci spread yang sedang aktif agar tidak terbelah
-    if (dist >= 0 && dist <= 1) return 0;
-    if (dist < 0 && dist >= -1) return 0;
+    
+    // Kunci 2 halaman aktif di tengah, PLUS 1 layer ekstra di bawah sisi kiri (dist = -2)
+    // Ini memastikan selalu ada fondasi solid di poros spine saat halaman melayang
+    if (dist >= -2 && dist <= 1) return 0;
     
     // Tarik layer sisanya ke luar untuk membentuk efek tumpukan kertas (fanning)
     if (dist > 1) return (dist - 1) * 80; 
-    if (dist < -1) return (dist + 1) * 80; 
+    
+    // Delay geseran kiri: baru bergeser setelah halamannya tertutup aman (dist < -2)
+    if (dist < -2) return (dist + 2) * 80; 
     return 0; 
   });
 
@@ -40,7 +42,6 @@ function Page({ index, currentIndex, currentImg, nextImg }) {
     if (dist >= 0) return -dist * 20; 
     if (dist <= -1) return -Math.abs(dist + 1) * 20;
     
-    // Efek kertas melambung sedikit ke atas saat diflip agar tidak menembus kertas di bawahnya
     const progress = -dist;
     return Math.sin(progress * Math.PI) * 30; 
   });
@@ -105,11 +106,11 @@ export default function JournalCarousel() {
   
   const bookX = useTransform(currentIndex, (c) => -(c - (spreads.length / 2)) * 60);
 
-  // 🔥 Cover paling bawah ikut disesuaikan dengan logika Delay X agar layer kirinya rapi
+  // 🔥 Cover paling bawah kini juga mengikuti logika delay (dist >= -2)
   const baseLeftX = useTransform(currentIndex, (c) => {
     const dist = -1 - c;
-    if (dist >= -1) return 0;
-    return (dist + 1) * 80;
+    if (dist >= -2) return 0;
+    return (dist + 2) * 80;
   });
   const baseLeftZ = useTransform(currentIndex, (c) => {
     const dist = -1 - c;
