@@ -8,7 +8,6 @@ import usImg from '../assets/US.jpeg';
 import timeZoneImg from '../assets/Timezonedate.jpg';
 import bilaSong from '../assets/bilaSong.mp3';
 
-// Sudut tekukan V-shape
 const UNFLIPPED_ANGLE = -20; 
 const FLIPPED_ANGLE = -160; 
 
@@ -21,18 +20,10 @@ function Page({ index, currentIndex, currentImg, nextImg }) {
     return UNFLIPPED_ANGLE + progress * (FLIPPED_ANGLE - UNFLIPPED_ANGLE);
   });
 
-  // 🔥 SOLUSI FINAL SPINE KIRI: Mengunci "Floor Layer" (dist >= -2)
   const x = useTransform(currentIndex, (c) => {
     const dist = index - c;
-    
-    // Kunci 2 halaman aktif di tengah, PLUS 1 layer ekstra di bawah sisi kiri (dist = -2)
-    // Ini memastikan selalu ada fondasi solid di poros spine saat halaman melayang
     if (dist >= -2 && dist <= 1) return 0;
-    
-    // Tarik layer sisanya ke luar untuk membentuk efek tumpukan kertas (fanning)
     if (dist > 1) return (dist - 1) * 80; 
-    
-    // Delay geseran kiri: baru bergeser setelah halamannya tertutup aman (dist < -2)
     if (dist < -2) return (dist + 2) * 80; 
     return 0; 
   });
@@ -41,7 +32,6 @@ function Page({ index, currentIndex, currentImg, nextImg }) {
     const dist = index - c;
     if (dist >= 0) return -dist * 20; 
     if (dist <= -1) return -Math.abs(dist + 1) * 20;
-    
     const progress = -dist;
     return Math.sin(progress * Math.PI) * 30; 
   });
@@ -96,7 +86,9 @@ function Page({ index, currentIndex, currentImg, nextImg }) {
 }
 
 export default function JournalCarousel() {
-  const spreads = [timeZoneImg, bilaImg, usImg, gilangImg];
+  const initialSpreads = [timeZoneImg, bilaImg, usImg, gilangImg];
+  const [spreads, setSpreads] = useState(initialSpreads);
+  
   const colors = [{ bg: '#2b2e4a', text: '#ffffff' }]; 
   
   const [activeIndex, setActiveIndex] = useState(0);
@@ -104,9 +96,11 @@ export default function JournalCarousel() {
   const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = useRef(null);
   
+  const [showUploadMenu, setShowUploadMenu] = useState(false);
+  const fileInputRef = useRef(null);
+  
   const bookX = useTransform(currentIndex, (c) => -(c - (spreads.length / 2)) * 60);
 
-  // 🔥 Cover paling bawah kini juga mengikuti logika delay (dist >= -2)
   const baseLeftX = useTransform(currentIndex, (c) => {
     const dist = -1 - c;
     if (dist >= -2) return 0;
@@ -148,6 +142,45 @@ export default function JournalCarousel() {
     const prevIdx = Math.max(activeIndex - 1, 0);
     setActiveIndex(prevIdx);
     animate(currentIndex, prevIdx, { type: 'spring', stiffness: 180, damping: 22 });
+  };
+
+  // 🔥 LOGIKA UPLOAD DIPERBAIKI
+  const handleFileUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const newImgUrl = URL.createObjectURL(file);
+      const newSpreads = [...spreads, newImgUrl];
+      setSpreads(newSpreads);
+      setShowUploadMenu(false);
+      
+      const newIndex = newSpreads.length - 1;
+      setActiveIndex(newIndex);
+      animate(currentIndex, newIndex, { type: 'spring', stiffness: 180, damping: 22 });
+    }
+  };
+
+  // 🔥 LOGIKA HAPUS DIPERBAIKI DAN DISINKRONISASI
+  const handleDelete = () => {
+    if (spreads.length <= 1) {
+      alert("Ups! Jurnal tidak boleh kosong, sisakan minimal 1 halaman ya.");
+      return;
+    }
+
+    // Filter array spreads, buang elemen di index yang aktif
+    const newSpreads = spreads.filter((_, idx) => idx !== activeIndex);
+    setSpreads(newSpreads);
+
+    // Hitung posisi index baru supaya carousel tidak menunjuk ke halaman yang sudah hilang
+    let nextActive = activeIndex;
+    if (activeIndex >= newSpreads.length) {
+      nextActive = newSpreads.length - 1; // Jika halaman terakhir dihapus, mundur 1 langkah
+    }
+    
+    setActiveIndex(nextActive);
+    
+    // Perbarui animasi motion value
+    currentIndex.set(nextActive);
+    animate(currentIndex, nextActive, { type: 'spring', stiffness: 180, damping: 22 });
   };
 
   const isBilaActive = spreads[activeIndex] === bilaImg;
@@ -216,9 +249,36 @@ export default function JournalCarousel() {
 
       <footer className="carousel-footer">
         <button className="nav-btn" onClick={goPrev}>🏠</button>
-        <button className="nav-btn">⬆️</button>
-        <button className="nav-btn">🗑️</button>
-        <button className="nav-btn" onClick={goNext}>➕</button>
+        <button className="nav-btn" onClick={goNext}>⬆️</button>
+        
+        {/* Tombol hapus sekarang sudah dihubungkan dengan onClick={handleDelete} */}
+        <button className="nav-btn" onClick={handleDelete}>🗑️</button>
+        
+        <div className="upload-menu-container">
+          <button className="nav-btn" onClick={() => setShowUploadMenu(!showUploadMenu)}>➕</button>
+          
+          {showUploadMenu && (
+            <div className="upload-popover">
+              <button className="upload-option" onClick={() => fileInputRef.current.click()}>
+                📁 File Lokal
+              </button>
+              <button className="upload-option" onClick={() => alert("Perlu setup OAuth Google Cloud untuk integrasi GDrive asli!")}>
+                ☁️ Google Drive
+              </button>
+              <button className="upload-option" onClick={() => alert("Perlu setup API Photos untuk integrasi galeri cloud!")}>
+                🖼️ Photos
+              </button>
+            </div>
+          )}
+          
+          <input 
+            type="file" 
+            ref={fileInputRef} 
+            style={{ display: 'none' }} 
+            accept="image/*"
+            onChange={handleFileUpload} 
+          />
+        </div>
       </footer>
     </div>
   );
